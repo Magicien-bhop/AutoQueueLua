@@ -12,6 +12,7 @@ local gamemodes = {
 	"Casual",
 	"Wingman",
 	"Competitive",
+	"Scrimmage",
 	"Danger Zone"
 }
 
@@ -52,11 +53,14 @@ local gamemodeMaps = {
 		"mg_de_nuke",
 		"mg_de_train",
 		"mg_de_dust2",
+		"mg_de_anubis",
 		"mg_de_cache",
 		"mg_cs_agency",
 		"mg_cs_office",
-		"mg_de_studio",
-		"mg_de_breach"
+	},
+	["Scrimmage"] = {
+		"mg_de_chlorine",
+		"mg_de_mirage_scrimmagemap"
 	}
 }
 
@@ -69,7 +73,6 @@ local settings = {
 			ark = 10,
 			nby =  0,
 			clantag = "",
-			prime = false,
 			mode = "",
 			type = "classic",
 			mapgroupname = ""
@@ -83,6 +86,7 @@ local CasualMulti = ui.new_combobox("misc", "miscellaneous", "Casual Maps", game
 local WingmanMulti = ui.new_multiselect("misc", "miscellaneous", "Wingman Maps", gamemodeMaps["Wingman"])
 local WarMulti = ui.new_multiselect("misc", "miscellaneous", "WarGames Maps", gamemodeMaps["War Games"]	)
 local DeathMulti = ui.new_combobox("misc", "miscellaneous", "Deathmatch Maps", gamemodeMaps["Deathmatch"])
+local ScrimMulti = ui.new_multiselect("misc", "miscellaneous", "Scrimmage Maps", gamemodeMaps["Scrimmage"])
 
 local function HandleMenu()
 	ui.set_visible(CompMulti, false)
@@ -90,15 +94,18 @@ local function HandleMenu()
 	ui.set_visible(CasualMulti, false)
 	ui.set_visible(WingmanMulti, false)
 	ui.set_visible(DeathMulti, false)
+	ui.set_visible(ScrimMulti, false)
 	if ui.get(gamemodesCombo) == "Competitive" then
 		ui.set_visible(CompMulti, true)
+	elseif ui.get(gamemodesCombo) == "Scrimmage" then
+		ui.set_visible(ScrimMulti, true)
 	elseif ui.get(gamemodesCombo) == "Casual" then
 		ui.set_visible(CasualMulti, true)
 	elseif ui.get(gamemodesCombo) == "Wingman" then
 		ui.set_visible(WingmanMulti, true)
 	elseif ui.get(gamemodesCombo) == "War Games" then
 		ui.set_visible(WarMulti, true)
-	elseif ui.get(gamemodesCombo)	 == "Deathmatch" then
+	elseif ui.get(gamemodesCombo) == "Deathmatch" then
 		ui.set_visible(DeathMulti, true)
 	end
 end
@@ -120,6 +127,11 @@ local function on_paint_ui(ctx)
 								settings["update"]["Game"]["mode"] = "competitive"
 								settings["update"]["Game"]["type"] = "classic"
 								settings["update"]["Game"]["mapgroupname"] = table.concat(ui.get(CompMulti), ",")
+							end
+							if ui.get(gamemodesCombo) == "Scrimmage" then
+								settings["update"]["Game"]["mode"] = "competitive"
+								settings["update"]["Game"]["type"] = "classic"
+								settings["update"]["Game"]["mapgroupname"] = table.concat(ui.get(ScrimMulti), ",")
 							end
 							if ui.get(gamemodesCombo) == "Casual" then
 								settings["update"]["Game"]["mode"] = "casual"
