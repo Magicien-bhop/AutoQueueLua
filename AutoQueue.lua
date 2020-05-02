@@ -179,7 +179,7 @@ local function on_paint_ui(ctx)
 									if partylistapi.GetCount() == 5 then
 										lobbyapi.StartMatchmaking("", "ct", "t", "")
 									end
-								elseif ui.get(gamemodesCombo == "Wingman") then
+								elseif ui.get(gamemodesCombo) == "Wingman" then
 									if partylistapi.GetCount() == 2 then
 										lobbyapi.StartMatchmaking("", "ct", "t", "")
 									end
