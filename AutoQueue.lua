@@ -3,6 +3,7 @@ local lobbyapi = js.LobbyAPI
 local localapi = js.MyPersonaAPI
 local compapi = js.CompetitiveMatchAPI
 local gameapi =  js.GameStateAPI
+local partylistapi = js.PartyListAPI
 local Active = false
 local Loop = true
 
@@ -80,13 +81,14 @@ local settings = {
 	}
 }
 
-local gamemodesCombo = ui.new_combobox("misc", "Miscellaneous", "GameType", gamemodes)
-local CompMulti = ui.new_multiselect("misc", "miscellaneous", "Competitive Maps", gamemodeMaps["Competitive"])
-local CasualMulti = ui.new_combobox("misc", "miscellaneous", "Casual Maps", gamemodeMaps["Casual"])
-local WingmanMulti = ui.new_multiselect("misc", "miscellaneous", "Wingman Maps", gamemodeMaps["Wingman"])
-local WarMulti = ui.new_multiselect("misc", "miscellaneous", "WarGames Maps", gamemodeMaps["War Games"]	)
-local DeathMulti = ui.new_combobox("misc", "miscellaneous", "Deathmatch Maps", gamemodeMaps["Deathmatch"])
-local ScrimMulti = ui.new_multiselect("misc", "miscellaneous", "Scrimmage Maps", gamemodeMaps["Scrimmage"])
+local gamemodesCombo = ui.new_combobox("LUA", "A", "GameType", gamemodes)
+local CompMulti = ui.new_multiselect("LUA", "A", "Competitive Maps", gamemodeMaps["Competitive"])
+local CasualMulti = ui.new_combobox("LUA", "A", "Casual Maps", gamemodeMaps["Casual"])
+local WingmanMulti = ui.new_multiselect("LUA", "A", "Wingman Maps", gamemodeMaps["Wingman"])
+local WarMulti = ui.new_multiselect("LUA", "A", "WarGames Maps", gamemodeMaps["War Games"]	)
+local DeathMulti = ui.new_combobox("LUA", "A", "Deathmatch Maps", gamemodeMaps["Deathmatch"])
+local ScrimMulti = ui.new_multiselect("LUA", "A", "Scrimmage Maps", gamemodeMaps["Scrimmage"])
+local FullLobby = ui.new_checkbox("LUA", "A", "Wait for Full lobby")
 
 local function HandleMenu()
 	ui.set_visible(CompMulti, false)
@@ -127,40 +129,66 @@ local function on_paint_ui(ctx)
 								settings["update"]["Game"]["mode"] = "competitive"
 								settings["update"]["Game"]["type"] = "classic"
 								settings["update"]["Game"]["mapgroupname"] = table.concat(ui.get(CompMulti), ",")
+								lobbyapi.UpdateSessionSettings( settings );
+								
+
 							end
 							if ui.get(gamemodesCombo) == "Scrimmage" then
 								settings["update"]["Game"]["mode"] = "competitive"
 								settings["update"]["Game"]["type"] = "classic"
 								settings["update"]["Game"]["mapgroupname"] = table.concat(ui.get(ScrimMulti), ",")
+								lobbyapi.UpdateSessionSettings( settings );
+								
 							end
 							if ui.get(gamemodesCombo) == "Casual" then
 								settings["update"]["Game"]["mode"] = "casual"
 								settings["update"]["Game"]["type"] = "classic"
 								settings["update"]["Game"]["mapgroupname"] = ui.get(CasualMulti)
+								lobbyapi.UpdateSessionSettings( settings );
 							end
 							if ui.get(gamemodesCombo) == "Wingman" then
 								settings["update"]["Game"]["mode"] = "scrimcomp2v2"
 								settings["update"]["Game"]["type"] = "classic"
 								settings["update"]["Game"]["mapgroupname"] = table.concat(ui.get(WingmanMulti), ",")
+								lobbyapi.UpdateSessionSettings( settings );
+								
 							end
 							if ui.get(gamemodesCombo) == "Deathmatch" then
 								settings["update"]["Game"]["mode"] = "deathmatch"
 								settings["update"]["Game"]["type"] = "gungame"
 								settings["update"]["Game"]["mapgroupname"] = ui.get(DeathMulti)
+								lobbyapi.UpdateSessionSettings( settings );
+								
 							end
 							if ui.get(gamemodesCombo) == "War Games" then
 								settings["update"]["Game"]["mode"] = "skirmish"
 								settings["update"]["Game"]["type"] = "skirmish"
 								settings["update"]["Game"]["mapgroupname"] = table.concat(ui.get(WarMulti), ",")
+								lobbyapi.UpdateSessionSettings( settings );
+		
 							end
 							
 							if ui.get(gamemodesCombo) == "Danger Zone" then
 								settings["update"]["Game"]["mode"] = "survival"
 								settings["update"]["Game"]["type"] = "freeforall"
 								settings["update"]["Game"]["mapgroupname"] = "mg_dz_blacksite,mg_dz_sirocco,mg_dz_junglety"
+								lobbyapi.UpdateSessionSettings( settings );
 							end
-							lobbyapi.UpdateSessionSettings( settings );
-							lobbyapi.StartMatchmaking("", "ct", "t", "")
+							if ui.get(FullLobby) then
+								if (ui.get(gamemodesCombo) == "Competitive" or ui.get(gamemodesCombo) == "Scrimmage") then
+									if partylistapi.GetCount() == 5 then
+										lobbyapi.StartMatchmaking("", "ct", "t", "")
+									end
+								elseif ui.get(gamemodesCombo == "Wingman") then
+									if partylistapi.GetCount() == 2 then
+										lobbyapi.StartMatchmaking("", "ct", "t", "")
+									end
+								else
+									lobbyapi.StartMatchmaking("", "ct", "t", "")
+								end
+							else
+								lobbyapi.StartMatchmaking("","ct","t","")
+							end
 						end
 					end
 				end
@@ -171,7 +199,7 @@ local function on_paint_ui(ctx)
 end
 client.set_event_callback("paint_ui", on_paint_ui)
 
-local enable_button = ui.new_button("misc", "miscellaneous", "Start auto queue", function() Active = true
+local enable_button = ui.new_button("LUA", "A", "Start auto queue", function() Active = true
 	client.log("Started")
 end)
 
@@ -179,4 +207,4 @@ local function stop_auto_queue()
 	client.delay_call(1, function() lobbyapi.StopMatchmaking() end)
 	Active = false
 end
-local disable_button = ui.new_button("misc", "miscellaneous", "Stop auto queue", stop_auto_queue)
+local disable_button = ui.new_button("LUA", "A", "Stop auto queue", stop_auto_queue)
