@@ -4,9 +4,10 @@ local localapi = js.MyPersonaAPI
 local compapi = js.CompetitiveMatchAPI
 local gameapi =  js.GameStateAPI
 local partylistapi = js.PartyListAPI
+local PartyBrowserAPI = js.PartyBrowserAPI
+local friendsapi = js.FriendsListAPI
 local Active = false
 local Loop = true
-
 local gamemodes = {
 	"Deathmatch",
 	"War Games",
@@ -16,7 +17,6 @@ local gamemodes = {
 	"Scrimmage",
 	"Danger Zone"
 }
-
 local gamemodeMaps = {
 	["Deathmatch"] = {	
 		"mg_casualsigma",
@@ -64,7 +64,6 @@ local gamemodeMaps = {
 		"mg_de_mirage_scrimmagemap"
 	}
 }
-
 local settings = {
 	update = {
 		Options = {
@@ -80,7 +79,8 @@ local settings = {
 		}
 	}
 }
-
+local labels = {}
+local friends = {}
 local gamemodesCombo = ui.new_combobox("LUA", "A", "GameType", gamemodes)
 local CompMulti = ui.new_multiselect("LUA", "A", "Competitive Maps", gamemodeMaps["Competitive"])
 local CasualMulti = ui.new_combobox("LUA", "A", "Casual Maps", gamemodeMaps["Casual"])
@@ -88,9 +88,37 @@ local WingmanMulti = ui.new_multiselect("LUA", "A", "Wingman Maps", gamemodeMaps
 local WarMulti = ui.new_multiselect("LUA", "A", "WarGames Maps", gamemodeMaps["War Games"]	)
 local DeathMulti = ui.new_combobox("LUA", "A", "Deathmatch Maps", gamemodeMaps["Deathmatch"])
 local ScrimMulti = ui.new_multiselect("LUA", "A", "Scrimmage Maps", gamemodeMaps["Scrimmage"])
-local FullLobby = ui.new_checkbox("LUA", "A", "Wait for Full lobby")
+local autoinvite = ui.new_checkbox("LUA","A","Auto Invite Players")
+local inviteAmount = ui.new_slider("LUA", "A", "Invite for x amount of players", 1, 4, 0)
+
+local function CreateFriendsToInvite()
+	for j = 1, 4 do  
+		local reference = ui.new_label("LUA","A","Friend Code " .. j)
+		local reference2 = ui.new_textbox("LUA","A","Friend Code " .. j)
+		labels[j] = reference
+		friends[j] = reference2
+	end
+end
+CreateFriendsToInvite()
+
+local acceptinvite = ui.new_checkbox("LUA","A","Auto Accept Invite from Friend Code")	
+local acceptLabel = ui.new_label("LUA", "A","Friends To Accept from")
+local acceptTextBox = ui.new_textbox("LUA","A","Friend To Accept from")
 
 local function HandleMenu()
+	ui.set_visible(inviteAmount, ui.get(autoinvite))
+	
+	for i = 1, 4 do
+		ui.set_visible(labels[i], false)
+		ui.set_visible(friends[i], false)
+	end
+	for j = 1, ui.get(inviteAmount) do
+		ui.set_visible(labels[j], ui.get(autoinvite))
+		ui.set_visible(friends[j], ui.get(autoinvite))
+	end
+	ui.set_visible(acceptTextBox, ui.get(acceptinvite))
+	ui.set_visible(acceptLabel, ui.get(acceptinvite))
+
 	ui.set_visible(CompMulti, false)
 	ui.set_visible(WarMulti, false)
 	ui.set_visible(CasualMulti, false)
@@ -112,13 +140,26 @@ local function HandleMenu()
 	end
 end
 ui.set_callback(gamemodesCombo, HandleMenu)
+ui.set_callback(inviteAmount, HandleMenu)
+ui.set_callback(autoinvite, HandleMenu)
+ui.set_callback(acceptinvite, HandleMenu)
 HandleMenu()
 
 local function on_paint_ui(ctx)	
+	if (ui.get(acceptinvite)) then
+		local hostID = friendsapi.GetXuidFromFriendCode(ui.get(acceptTextBox)) -- host xuid
+		for i=1, PartyBrowserAPI.GetInvitesCount() do
+			local lobby_id = PartyBrowserAPI.GetInviteXuidByIndex(i-1)
+			if PartyBrowserAPI.GetPartyMemberXuid(lobby_id, 0) == hostID then
+				PartyBrowserAPI.ActionJoinParty(lobby_id)
+				break
+			end
+		end
+	end
 	if Active then
 		if Loop then
 			Loop = false
-			client.delay_call(1	, function()  
+			client.delay_call(1	, function() 
 				if not (gameapi.IsConnectedOrConnectingToServer() == true) then
 					if lobbyapi.GetMatchmakingStatusString() == "" then
 						if not compapi.HasOngoingMatch() then		
@@ -130,15 +171,12 @@ local function on_paint_ui(ctx)
 								settings["update"]["Game"]["type"] = "classic"
 								settings["update"]["Game"]["mapgroupname"] = table.concat(ui.get(CompMulti), ",")
 								lobbyapi.UpdateSessionSettings( settings );
-								
-
 							end
 							if ui.get(gamemodesCombo) == "Scrimmage" then
 								settings["update"]["Game"]["mode"] = "competitive"
 								settings["update"]["Game"]["type"] = "classic"
 								settings["update"]["Game"]["mapgroupname"] = table.concat(ui.get(ScrimMulti), ",")
 								lobbyapi.UpdateSessionSettings( settings );
-								
 							end
 							if ui.get(gamemodesCombo) == "Casual" then
 								settings["update"]["Game"]["mode"] = "casual"
@@ -151,39 +189,31 @@ local function on_paint_ui(ctx)
 								settings["update"]["Game"]["type"] = "classic"
 								settings["update"]["Game"]["mapgroupname"] = table.concat(ui.get(WingmanMulti), ",")
 								lobbyapi.UpdateSessionSettings( settings );
-								
 							end
 							if ui.get(gamemodesCombo) == "Deathmatch" then
 								settings["update"]["Game"]["mode"] = "deathmatch"
 								settings["update"]["Game"]["type"] = "gungame"
 								settings["update"]["Game"]["mapgroupname"] = ui.get(DeathMulti)
 								lobbyapi.UpdateSessionSettings( settings );
-								
 							end
 							if ui.get(gamemodesCombo) == "War Games" then
 								settings["update"]["Game"]["mode"] = "skirmish"
 								settings["update"]["Game"]["type"] = "skirmish"
 								settings["update"]["Game"]["mapgroupname"] = table.concat(ui.get(WarMulti), ",")
 								lobbyapi.UpdateSessionSettings( settings );
-		
 							end
-							
 							if ui.get(gamemodesCombo) == "Danger Zone" then
 								settings["update"]["Game"]["mode"] = "survival"
 								settings["update"]["Game"]["type"] = "freeforall"
 								settings["update"]["Game"]["mapgroupname"] = "mg_dz_blacksite,mg_dz_sirocco,mg_dz_junglety"
 								lobbyapi.UpdateSessionSettings( settings );
 							end
-							if ui.get(FullLobby) then
-								if (ui.get(gamemodesCombo) == "Competitive" or ui.get(gamemodesCombo) == "Scrimmage") then
-									if partylistapi.GetCount() == 5 then
-										lobbyapi.StartMatchmaking("", "ct", "t", "")
-									end
-								elseif ui.get(gamemodesCombo) == "Wingman" then
-									if partylistapi.GetCount() == 2 then
-										lobbyapi.StartMatchmaking("", "ct", "t", "")
-									end
-								else
+							if ui.get(autoinvite) then
+								for i = 1, ui.get(inviteAmount), 1 do
+									local xuid = friendsapi.GetXuidFromFriendCode(ui.get(friends[i]))
+									friendsapi.ActionInviteFriend(xuid, '')
+								end
+								if partylistapi.GetCount() == (ui.get(inviteAmount) + 1) then
 									lobbyapi.StartMatchmaking("", "ct", "t", "")
 								end
 							else
